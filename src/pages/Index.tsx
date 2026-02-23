@@ -21,8 +21,6 @@ interface GameHudState {
   maxArrows: number;
   reloading: boolean;
   reloadProgress: number;
-  combo: number;
-  killStreak: number;
 }
 
 const DIFFICULTY_LABELS: Record<Difficulty, string> = {
@@ -48,7 +46,6 @@ export default function Index() {
   const [hudState, setHudState] = useState<GameHudState>({
     hp: 100, maxHp: 100, score: 0, wave: 1,
     arrows: 8, maxArrows: 8, reloading: false, reloadProgress: 0,
-    combo: 0, killStreak: 0,
   });
   const [leaderboard, setLeaderboard] = useState<LeaderEntry[]>([]);
   const [lastScore, setLastScore] = useState(0);
@@ -298,16 +295,10 @@ export default function Index() {
               </div>
             </div>
 
-            {/* Score + Combo */}
+            {/* Score */}
             <div className="flex-1 text-center">
               <div className="font-orbitron text-xs text-white/40 tracking-[0.3em]">СЧЁТ</div>
               <div className="font-orbitron text-2xl font-black neon-cyan">{hudState.score.toLocaleString()}</div>
-              {hudState.combo >= 2 && (
-                <div className="font-orbitron text-xs font-bold mt-0.5 animate-pulse-neon"
-                  style={{ color: '#ffff00', textShadow: '0 0 10px #ffff00' }}>
-                  ×{hudState.combo} COMBO
-                </div>
-              )}
             </div>
 
             {/* Wave */}
