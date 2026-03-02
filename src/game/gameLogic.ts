@@ -108,20 +108,27 @@ export function tickEnemies(
         e.x += e.vx;
         e.y += e.vy;
         break;
-      case 'zigzag':
+      case 'zigzag': {
         e.zigzagTimer++;
         e.x += e.vx;
         e.y += e.vy;
         if (e.zigzagTimer % 40 === 0) {
-          const perp = { x: -e.vy / e.speed, y: e.vx / e.speed };
+          // Вычисляем направление к игроку
+          const tdx = cx - e.x; const tdy = cy - e.y;
+          const td = Math.sqrt(tdx * tdx + tdy * tdy);
+          const toPlayerX = tdx / td; const toPlayerY = tdy / td;
+          // Перпендикуляр к направлению на игрока
+          const perp = { x: -toPlayerY, y: toPlayerX };
           const flip = Math.random() > 0.5 ? 1 : -1;
-          e.vx = (e.vx / e.speed + perp.x * flip * 1.5) * e.speed * 0.7;
-          e.vy = (e.vy / e.speed + perp.y * flip * 1.5) * e.speed * 0.7;
-          const spd = Math.sqrt(e.vx * e.vx + e.vy * e.vy);
-          e.vx = (e.vx / spd) * e.speed;
-          e.vy = (e.vy / spd) * e.speed;
+          // Смешиваем: 70% к игроку + 50% зигзаг
+          const nx = toPlayerX + perp.x * flip * 0.5;
+          const ny = toPlayerY + perp.y * flip * 0.5;
+          const nd = Math.sqrt(nx * nx + ny * ny);
+          e.vx = (nx / nd) * e.speed;
+          e.vy = (ny / nd) * e.speed;
         }
         break;
+      }
       case 'chase': {
         const dx = cx - e.x;
         const dy = cy - e.y;
@@ -132,38 +139,58 @@ export function tickEnemies(
         e.y += e.vy;
         break;
       }
-      case 'teleport':
+      case 'teleport': {
+        // Плавное появление fade-in
         if ((e.teleportAlpha ?? 1) < 1) {
-          e.teleportAlpha = Math.min(1, (e.teleportAlpha ?? 0) + 0.05);
+          e.teleportAlpha = Math.min(1, (e.teleportAlpha ?? 0) + 0.06);
         }
+        // Анимация кольца при появлении
+        if ((e.teleportRingAnim ?? 0) > 0) {
+          e.teleportRingAnim = (e.teleportRingAnim ?? 0) - 1;
+        }
+
         if (!e.teleportFading) {
           e.x += e.vx;
           e.y += e.vy;
         }
         e.teleportTimer--;
+
         if (e.teleportTimer <= 0 && !e.teleportFading) {
-          e.teleportFading = true;
-          e.teleportTimer = 20;
+          if ((e.teleportsLeft ?? 0) > 0) {
+            // Есть ещё телепортации — уходим в fade-out
+            e.teleportFading = true;
+            e.teleportTimer = 18;
+          }
+          // Если телепортаций не осталось — просто летим прямо (chase), таймер не сбрасываем
         }
+
         if (e.teleportFading) {
-          e.teleportAlpha = Math.max(0, (e.teleportAlpha ?? 1) - 0.07);
+          e.teleportAlpha = Math.max(0, (e.teleportAlpha ?? 1) - 0.09);
           if ((e.teleportAlpha ?? 0) <= 0) {
-            const margin2 = 60;
-            const side2 = Math.floor(Math.random() * 4);
-            if (side2 === 0) { e.x = Math.random() * W; e.y = -margin2; }
-            else if (side2 === 1) { e.x = W + margin2; e.y = Math.random() * H; }
-            else if (side2 === 2) { e.x = Math.random() * W; e.y = H + margin2; }
-            else { e.x = -margin2; e.y = Math.random() * H; }
+            // Появляемся в случайной точке ВНУТРИ экрана (не за краем)
+            const margin3 = 80;
+            e.x = margin3 + Math.random() * (W - margin3 * 2);
+            e.y = margin3 + Math.random() * (H - margin3 * 2);
             const tdx = cx - e.x; const tdy = cy - e.y;
             const td = Math.sqrt(tdx * tdx + tdy * tdy);
             e.vx = (tdx / td) * e.speed; e.vy = (tdy / td) * e.speed;
-            spawnParticles(s, e.x, e.y, e.color, 8);
+            // Эффект появления: частицы + кольцо
+            spawnParticles(s, e.x, e.y, e.color, 12);
+            e.teleportRingAnim = 30;
             e.teleportFading = false;
             e.teleportAlpha = 0;
-            e.teleportTimer = 100 + Math.random() * 120;
+            e.teleportsLeft = (e.teleportsLeft ?? 1) - 1;
+            e.teleportTimer = 90 + Math.random() * 90;
+
+            // Если телепортаций больше нет — переключаемся на chase
+            if ((e.teleportsLeft ?? 0) <= 0) {
+              (e as Enemy).pattern = 'chase';
+              e.teleportAlpha = 1;
+            }
           }
         }
         break;
+      }
       case 'bounce':
         if (!e.bouncerEntered) {
           e.x += e.vx;
@@ -224,20 +251,7 @@ export function tickEnemies(
     if (e.pattern !== 'bounce') {
       const margin = 200;
       if (e.x < -margin || e.x > W + margin || e.y < -margin || e.y > H + margin) {
-        if (e.pattern === 'zigzag' || e.pattern === 'teleport') {
-          const side = Math.floor(Math.random() * 4);
-          const m = 50;
-          if (side === 0) { e.x = Math.random() * W; e.y = -m; }
-          else if (side === 1) { e.x = W + m; e.y = Math.random() * H; }
-          else if (side === 2) { e.x = Math.random() * W; e.y = H + m; }
-          else { e.x = -m; e.y = Math.random() * H; }
-          const tdx = cx - e.x; const tdy = cy - e.y;
-          const td = Math.sqrt(tdx * tdx + tdy * tdy);
-          e.vx = (tdx / td) * e.speed; e.vy = (tdy / td) * e.speed;
-          if (e.pattern === 'teleport') { e.teleportAlpha = 0; e.teleportFading = false; }
-        } else {
-          deadEnemies.push(i);
-        }
+        deadEnemies.push(i);
       }
     }
   });

@@ -30,6 +30,8 @@ export type Enemy = EnemyType & {
   bouncerEntered?: boolean;
   teleportAlpha?: number;
   teleportFading?: boolean;
+  teleportsLeft?: number;
+  teleportRingAnim?: number;
 };
 
 export type Projectile = {
@@ -193,6 +195,8 @@ export function createEnemy(
     bouncerEntered: false,
     teleportAlpha: type.pattern === 'teleport' ? 0 : 1,
     teleportFading: false,
+    teleportsLeft: type.pattern === 'teleport' ? 2 + Math.floor(Math.random() * 3) : 0,
+    teleportRingAnim: 0,
     ...overrides,
   };
 }

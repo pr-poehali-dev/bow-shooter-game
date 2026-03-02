@@ -63,7 +63,36 @@ export function renderProjectiles(ctx: CanvasRenderingContext2D, projectiles: Pr
 
 export function renderEnemies(ctx: CanvasRenderingContext2D, enemies: Enemy[]) {
   enemies.forEach(e => {
-    const alpha = e.pattern === 'teleport' ? (e.teleportAlpha ?? 1) : 1;
+    const isGhost = e.id === 'ghost';
+    const alpha = isGhost ? (e.teleportAlpha ?? 1) : 1;
+    const ringAnim = e.teleportRingAnim ?? 0;
+
+    // Анимация появления после телепортации: расширяющееся кольцо (рисуем до globalAlpha)
+    if (isGhost && ringAnim > 0) {
+      const ringProgress = 1 - ringAnim / 30;
+      const ringRadius = e.radius + ringProgress * e.radius * 2.5;
+      const ringAlpha = ringAnim / 30;
+      ctx.globalAlpha = ringAlpha;
+      // Внешнее кольцо
+      ctx.beginPath();
+      ctx.arc(e.x, e.y, ringRadius, 0, Math.PI * 2);
+      ctx.strokeStyle = e.color;
+      ctx.lineWidth = 3 * ringAlpha;
+      ctx.shadowBlur = 30;
+      ctx.shadowColor = e.color;
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+      // Второе кольцо чуть меньше
+      ctx.beginPath();
+      ctx.arc(e.x, e.y, ringRadius * 0.65, 0, Math.PI * 2);
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 1.5 * ringAlpha;
+      ctx.shadowBlur = 15;
+      ctx.shadowColor = '#ffffff';
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+    }
+
     ctx.globalAlpha = alpha;
 
     // Pulse glow ring
@@ -76,16 +105,34 @@ export function renderEnemies(ctx: CanvasRenderingContext2D, enemies: Enemy[]) {
     ctx.stroke();
     ctx.shadowBlur = 0;
 
-    // Teleport ring effect when appearing
-    if (e.pattern === 'teleport' && alpha < 1 && !e.teleportFading) {
+    // Fade-in ring (пока появляется после телепорта)
+    if (isGhost && alpha < 1 && !e.teleportFading) {
       ctx.beginPath();
-      ctx.arc(e.x, e.y, e.radius * (2 - alpha), 0, Math.PI * 2);
+      ctx.arc(e.x, e.y, e.radius * (1.5 + (1 - alpha)), 0, Math.PI * 2);
       ctx.strokeStyle = e.color;
       ctx.lineWidth = 2;
-      ctx.shadowBlur = 20;
+      ctx.shadowBlur = 25;
       ctx.shadowColor = e.color;
       ctx.stroke();
       ctx.shadowBlur = 0;
+    }
+
+    // Индикатор оставшихся телепортаций (маленькие точки над врагом)
+    if (isGhost && (e.teleportsLeft ?? 0) > 0 && alpha >= 1) {
+      ctx.globalAlpha = 0.8;
+      const dots = e.teleportsLeft ?? 0;
+      for (let d = 0; d < dots; d++) {
+        const dotX = e.x - (dots - 1) * 5 + d * 10;
+        const dotY = e.y - e.radius - 18;
+        ctx.beginPath();
+        ctx.arc(dotX, dotY, 3, 0, Math.PI * 2);
+        ctx.fillStyle = e.color;
+        ctx.shadowBlur = 8;
+        ctx.shadowColor = e.color;
+        ctx.fill();
+        ctx.shadowBlur = 0;
+      }
+      ctx.globalAlpha = alpha;
     }
 
     drawShape(ctx, e.shape, e.x, e.y, e.radius, e.color, e.glowColor, e.angle, e.flashTimer);
