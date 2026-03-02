@@ -206,10 +206,12 @@ export default function Index() {
               <>
                 <div className="font-orbitron font-black tracking-wider neon-cyan animate-flicker"
                   style={{ fontSize: 'clamp(2rem, 7vw, 4.5rem)' }}>NEON</div>
-                <div className="font-orbitron font-black tracking-[0.3em] neon-purple"
+                <div className="font-orbitron font-black tracking-[0.15em] neon-purple"
+                  style={{ fontSize: 'clamp(2rem, 6.5vw, 4.5rem)' }}>SPACE</div>
+                <div className="font-orbitron font-black tracking-[0.3em] neon-cyan"
                   style={{ fontSize: 'clamp(2.5rem, 9vw, 6rem)' }}>ARCHER</div>
                 <div className="font-rajdhani text-sm tracking-[0.4em] text-white/40 mb-10 uppercase">
-                  Стрелковая аркада
+                  Космическая аркада
                 </div>
               </>
             )}
@@ -236,7 +238,7 @@ export default function Index() {
                 </div>
               )}
 
-              <button className="neon-btn py-4 px-6 rounded font-bold text-sm animate-scale-in"
+              <button className="neon-btn-rainbow py-4 px-6 rounded font-bold text-sm animate-scale-in"
                 style={{ animationDelay: '0.05s' }}
                 onClick={() => setScreen('game')}>
                 {screen === 'gameover' ? '↺ ИГРАТЬ СНОВА' : '▶ НАЧАТЬ ИГРУ'}

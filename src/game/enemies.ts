@@ -27,6 +27,9 @@ export type Enemy = EnemyType & {
   pulseRadius: number;
   pulseGrowing: boolean;
   flashTimer: number;
+  bouncerEntered?: boolean;
+  teleportAlpha?: number;
+  teleportFading?: boolean;
 };
 
 export type Projectile = {
@@ -59,7 +62,7 @@ export const ENEMY_TYPES: Omit<EnemyType, 'hp'>[] = [
     shape: 'circle',
     maxHp: 1,
     speed: 2.5,
-    damage: 10,
+    damage: 18,
     radius: 14,
     points: 10,
     pattern: 'straight',
@@ -73,7 +76,7 @@ export const ENEMY_TYPES: Omit<EnemyType, 'hp'>[] = [
     shape: 'hexagon',
     maxHp: 5,
     speed: 1.0,
-    damage: 25,
+    damage: 40,
     radius: 24,
     points: 40,
     pattern: 'straight',
@@ -87,7 +90,7 @@ export const ENEMY_TYPES: Omit<EnemyType, 'hp'>[] = [
     shape: 'diamond',
     maxHp: 2,
     speed: 2.0,
-    damage: 15,
+    damage: 25,
     radius: 16,
     points: 25,
     pattern: 'zigzag',
@@ -102,7 +105,7 @@ export const ENEMY_TYPES: Omit<EnemyType, 'hp'>[] = [
     shape: 'pentagon',
     maxHp: 3,
     speed: 1.8,
-    damage: 20,
+    damage: 30,
     radius: 18,
     points: 35,
     pattern: 'teleport',
@@ -117,7 +120,7 @@ export const ENEMY_TYPES: Omit<EnemyType, 'hp'>[] = [
     shape: 'square',
     maxHp: 4,
     speed: 1.5,
-    damage: 18,
+    damage: 28,
     radius: 20,
     points: 50,
     pattern: 'straight',
@@ -132,7 +135,7 @@ export const ENEMY_TYPES: Omit<EnemyType, 'hp'>[] = [
     shape: 'star',
     maxHp: 3,
     speed: 3.5,
-    damage: 30,
+    damage: 45,
     radius: 17,
     points: 60,
     pattern: 'chase',
@@ -147,7 +150,7 @@ export const ENEMY_TYPES: Omit<EnemyType, 'hp'>[] = [
     shape: 'triangle',
     maxHp: 3,
     speed: 2.2,
-    damage: 15,
+    damage: 22,
     radius: 15,
     points: 45,
     pattern: 'bounce',
@@ -187,6 +190,9 @@ export function createEnemy(
     pulseRadius: type.radius,
     pulseGrowing: true,
     flashTimer: 0,
+    bouncerEntered: false,
+    teleportAlpha: type.pattern === 'teleport' ? 0 : 1,
+    teleportFading: false,
     ...overrides,
   };
 }

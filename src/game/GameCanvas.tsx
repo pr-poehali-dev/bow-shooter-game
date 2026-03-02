@@ -214,22 +214,55 @@ export default function GameCanvas({ difficulty, soundEnabled, onGameOver, onSta
             break;
           }
           case 'teleport':
-            e.x += e.vx;
-            e.y += e.vy;
+            // Анимация появления: fade in
+            if ((e.teleportAlpha ?? 1) < 1) {
+              e.teleportAlpha = Math.min(1, (e.teleportAlpha ?? 0) + 0.05);
+            }
+            if (!e.teleportFading) {
+              e.x += e.vx;
+              e.y += e.vy;
+            }
             e.teleportTimer--;
-            if (e.teleportTimer <= 0) {
-              e.teleportTimer = 120 + Math.random() * 120;
-              const newE = createEnemy(e, W, H);
-              e.x = newE.x;
-              e.y = newE.y;
-              spawnParticles(e.x, e.y, e.color, 5);
+            if (e.teleportTimer <= 0 && !e.teleportFading) {
+              e.teleportFading = true;
+              e.teleportTimer = 20; // время на fade out
+            }
+            if (e.teleportFading) {
+              e.teleportAlpha = Math.max(0, (e.teleportAlpha ?? 1) - 0.07);
+              if ((e.teleportAlpha ?? 0) <= 0) {
+                // телепортируемся — выбираем новую позицию
+                const margin2 = 60;
+                const side2 = Math.floor(Math.random() * 4);
+                if (side2 === 0) { e.x = Math.random() * W; e.y = -margin2; }
+                else if (side2 === 1) { e.x = W + margin2; e.y = Math.random() * H; }
+                else if (side2 === 2) { e.x = Math.random() * W; e.y = H + margin2; }
+                else { e.x = -margin2; e.y = Math.random() * H; }
+                const tdx = cx - e.x; const tdy = cy - e.y;
+                const td = Math.sqrt(tdx * tdx + tdy * tdy);
+                e.vx = (tdx / td) * e.speed; e.vy = (tdy / td) * e.speed;
+                spawnParticles(e.x, e.y, e.color, 8);
+                e.teleportFading = false;
+                e.teleportAlpha = 0;
+                e.teleportTimer = 100 + Math.random() * 120;
+              }
             }
             break;
           case 'bounce':
-            e.x += e.vx;
-            e.y += e.vy;
-            if (e.x - e.radius < 0 || e.x + e.radius > W) e.vx *= -1;
-            if (e.y - e.radius < 0 || e.y + e.radius > H) e.vy *= -1;
+            // Сначала заходим в поле, потом начинаем отскакивать
+            if (!e.bouncerEntered) {
+              e.x += e.vx;
+              e.y += e.vy;
+              if (e.x > e.radius && e.x < W - e.radius && e.y > e.radius && e.y < H - e.radius) {
+                e.bouncerEntered = true;
+              }
+            } else {
+              e.x += e.vx;
+              e.y += e.vy;
+              if (e.x - e.radius < 0) { e.x = e.radius; e.vx = Math.abs(e.vx); spawnParticles(e.x, e.y, e.color, 4); }
+              if (e.x + e.radius > W) { e.x = W - e.radius; e.vx = -Math.abs(e.vx); spawnParticles(e.x, e.y, e.color, 4); }
+              if (e.y - e.radius < 0) { e.y = e.radius; e.vy = Math.abs(e.vy); spawnParticles(e.x, e.y, e.color, 4); }
+              if (e.y + e.radius > H) { e.y = H - e.radius; e.vy = -Math.abs(e.vy); spawnParticles(e.x, e.y, e.color, 4); }
+            }
             break;
           case 'spiral': {
             const dx = cx - e.x;
@@ -271,11 +304,25 @@ export default function GameCanvas({ difficulty, soundEnabled, onGameOver, onSta
           }
         }
 
-        // Out of bounds (non-bounce)
+        // Out of bounds
         if (e.pattern !== 'bounce') {
           const margin = 200;
           if (e.x < -margin || e.x > W + margin || e.y < -margin || e.y > H + margin) {
-            deadEnemies.push(i);
+            // Зигзаги и Призраки возвращаются с другой стороны, чтобы гарантированно наносить урон
+            if (e.pattern === 'zigzag' || e.pattern === 'teleport') {
+              const side = Math.floor(Math.random() * 4);
+              const m = 50;
+              if (side === 0) { e.x = Math.random() * W; e.y = -m; }
+              else if (side === 1) { e.x = W + m; e.y = Math.random() * H; }
+              else if (side === 2) { e.x = Math.random() * W; e.y = H + m; }
+              else { e.x = -m; e.y = Math.random() * H; }
+              const tdx = cx - e.x; const tdy = cy - e.y;
+              const td = Math.sqrt(tdx * tdx + tdy * tdy);
+              e.vx = (tdx / td) * e.speed; e.vy = (tdy / td) * e.speed;
+              if (e.pattern === 'teleport') { e.teleportAlpha = 0; e.teleportFading = false; }
+            } else {
+              deadEnemies.push(i);
+            }
           }
         }
       });
@@ -402,6 +449,9 @@ export default function GameCanvas({ difficulty, soundEnabled, onGameOver, onSta
 
       // Enemies
       s.enemies.forEach(e => {
+        const alpha = e.pattern === 'teleport' ? (e.teleportAlpha ?? 1) : 1;
+        ctx.globalAlpha = alpha;
+
         // Pulse glow ring
         ctx.beginPath();
         ctx.arc(e.x, e.y, e.pulseRadius + 4, 0, Math.PI * 2);
@@ -411,6 +461,18 @@ export default function GameCanvas({ difficulty, soundEnabled, onGameOver, onSta
         ctx.shadowColor = e.color;
         ctx.stroke();
         ctx.shadowBlur = 0;
+
+        // Teleport ring effect when appearing
+        if (e.pattern === 'teleport' && alpha < 1 && !e.teleportFading) {
+          ctx.beginPath();
+          ctx.arc(e.x, e.y, e.radius * (2 - alpha), 0, Math.PI * 2);
+          ctx.strokeStyle = e.color;
+          ctx.lineWidth = 2;
+          ctx.shadowBlur = 20;
+          ctx.shadowColor = e.color;
+          ctx.stroke();
+          ctx.shadowBlur = 0;
+        }
 
         drawShape(ctx, e.shape, e.x, e.y, e.radius, e.color, e.glowColor, e.angle, e.flashTimer);
 
@@ -428,6 +490,8 @@ export default function GameCanvas({ difficulty, soundEnabled, onGameOver, onSta
           ctx.fillRect(bx, by, bw * (e.hp / e.maxHp), bh);
           ctx.shadowBlur = 0;
         }
+
+        ctx.globalAlpha = 1;
       });
 
       // === BOW / ARCHER ===
