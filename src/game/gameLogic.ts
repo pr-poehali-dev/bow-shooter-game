@@ -1,4 +1,10 @@
-import { Enemy, Projectile, Particle, ENEMY_TYPES, createEnemy } from './enemies';
+import {
+  Enemy,
+  Projectile,
+  Particle,
+  ENEMY_TYPES,
+  createEnemy,
+} from "./enemies";
 
 export interface InternalGameState {
   hp: number;
@@ -21,17 +27,48 @@ export interface InternalGameState {
 }
 
 export const DIFFICULTY = {
-  easy:   { spawnRate: 180, enemySpeedMult: 0.7, playerDamageMult: 0.6, maxArrows: 12 },
-  normal: { spawnRate: 120, enemySpeedMult: 1.0, playerDamageMult: 1.0, maxArrows: 8 },
-  hard:   { spawnRate: 70,  enemySpeedMult: 1.4, playerDamageMult: 1.4, maxArrows: 5 },
+  easy: {
+    spawnRate: 180,
+    enemySpeedMult: 0.7,
+    playerDamageMult: 0.6,
+    maxArrows: 12,
+  },
+  normal: {
+    spawnRate: 120,
+    enemySpeedMult: 1.0,
+    playerDamageMult: 1.0,
+    maxArrows: 8,
+  },
+  hard: {
+    spawnRate: 70,
+    enemySpeedMult: 1.4,
+    playerDamageMult: 1.4,
+    maxArrows: 5,
+  },
 };
 
-export function spawnParticles(s: InternalGameState, x: number, y: number, color: string, count = 8) {
+const RELOAD_FRAMES = 120; // 2 seconds @ 60fps
+const EPS = 1e-6;
+
+function safeNorm(dx: number, dy: number) {
+  const d = Math.sqrt(dx * dx + dy * dy);
+  if (d < EPS) return { nx: 0, ny: 0, d: 0 };
+  return { nx: dx / d, ny: dy / d, d };
+}
+
+export function spawnParticles(
+  s: InternalGameState,
+  x: number,
+  y: number,
+  color: string,
+  count = 8,
+) {
   for (let i = 0; i < count; i++) {
     const angle = (Math.PI * 2 * i) / count + Math.random() * 0.5;
     const speed = 1.5 + Math.random() * 3;
     s.particles.push({
-      x, y,
+      x,
+      y,
       vx: Math.cos(angle) * speed,
       vy: Math.sin(angle) * speed,
       life: 40 + Math.random() * 20,
@@ -46,7 +83,7 @@ export function tickSpawn(
   s: InternalGameState,
   W: number,
   H: number,
-  diff: typeof DIFFICULTY[keyof typeof DIFFICULTY],
+  diff: (typeof DIFFICULTY)[keyof typeof DIFFICULTY],
 ) {
   s.spawnTimer++;
   s.waveTimer++;
@@ -57,9 +94,10 @@ export function tickSpawn(
   const currentSpawnRate = Math.max(40, diff.spawnRate - s.wave * 5);
   if (s.spawnTimer >= currentSpawnRate) {
     s.spawnTimer = 0;
-    const pool = s.wave >= 5
-      ? ENEMY_TYPES
-      : ENEMY_TYPES.slice(0, Math.min(s.wave + 1, ENEMY_TYPES.length));
+    const pool =
+      s.wave >= 5
+        ? ENEMY_TYPES
+        : ENEMY_TYPES.slice(0, Math.min(s.wave + 1, ENEMY_TYPES.length));
     const type = pool[Math.floor(Math.random() * pool.length)];
     const e = createEnemy(type, W, H);
     e.speed *= diff.enemySpeedMult;
@@ -77,12 +115,12 @@ export function tickReload(
 ) {
   if (!s.reloading) return;
   s.reloadTimer--;
-  s.reloadProgress = 1 - s.reloadTimer / 180;
+  s.reloadProgress = 1 - s.reloadTimer / RELOAD_FRAMES;
   if (s.reloadTimer <= 0) {
     s.reloading = false;
     s.arrows = s.maxArrows;
     s.reloadProgress = 0;
-    spawnParticles(s, cx, cy, '#00ffff', 6);
+    spawnParticles(s, cx, cy, "#00ffff", 6);
   }
   emitState();
 }
@@ -93,7 +131,7 @@ export function tickEnemies(
   H: number,
   cx: number,
   cy: number,
-  diff: typeof DIFFICULTY[keyof typeof DIFFICULTY],
+  diff: (typeof DIFFICULTY)[keyof typeof DIFFICULTY],
   emitState: () => void,
   onGameOver: (score: number) => void,
 ) {
@@ -103,43 +141,46 @@ export function tickEnemies(
     if (e.flashTimer > 0) e.flashTimer--;
 
     switch (e.pattern) {
-      case 'straight':
-      case 'split':
+      case "straight":
+      case "split":
         e.x += e.vx;
         e.y += e.vy;
         break;
-      case 'zigzag': {
+      case "zigzag": {
         e.zigzagTimer++;
         e.x += e.vx;
         e.y += e.vy;
         if (e.zigzagTimer % 40 === 0) {
           // Вычисляем направление к игроку
-          const tdx = cx - e.x; const tdy = cy - e.y;
-          const td = Math.sqrt(tdx * tdx + tdy * tdy);
-          const toPlayerX = tdx / td; const toPlayerY = tdy / td;
+          const tdx = cx - e.x;
+          const tdy = cy - e.y;
+          const { nx: toPlayerX, ny: toPlayerY, d: td } = safeNorm(tdx, tdy);
+          if (td < EPS) break;
           // Перпендикуляр к направлению на игрока
           const perp = { x: -toPlayerY, y: toPlayerX };
           const flip = Math.random() > 0.5 ? 1 : -1;
           // Смешиваем: 70% к игроку + 50% зигзаг
           const nx = toPlayerX + perp.x * flip * 0.5;
           const ny = toPlayerY + perp.y * flip * 0.5;
-          const nd = Math.sqrt(nx * nx + ny * ny);
-          e.vx = (nx / nd) * e.speed;
-          e.vy = (ny / nd) * e.speed;
+          const { nx: nnx, ny: nny, d: nd } = safeNorm(nx, ny);
+          if (nd < EPS) break;
+          e.vx = nnx * e.speed;
+          e.vy = nny * e.speed;
         }
         break;
       }
-      case 'chase': {
+      case "chase": {
         const dx = cx - e.x;
         const dy = cy - e.y;
-        const d = Math.sqrt(dx * dx + dy * dy);
-        e.vx = (dx / d) * e.speed;
-        e.vy = (dy / d) * e.speed;
+        const { nx, ny, d } = safeNorm(dx, dy);
+        if (d < EPS) break;
+        e.vx = nx * e.speed;
+        e.vy = ny * e.speed;
         e.x += e.vx;
         e.y += e.vy;
         break;
       }
-      case 'teleport': {
+      case "teleport": {
         // Плавное появление fade-in
         if ((e.teleportAlpha ?? 1) < 1) {
           e.teleportAlpha = Math.min(1, (e.teleportAlpha ?? 0) + 0.06);
@@ -171,9 +212,11 @@ export function tickEnemies(
             const margin3 = 80;
             e.x = margin3 + Math.random() * (W - margin3 * 2);
             e.y = margin3 + Math.random() * (H - margin3 * 2);
-            const tdx = cx - e.x; const tdy = cy - e.y;
-            const td = Math.sqrt(tdx * tdx + tdy * tdy);
-            e.vx = (tdx / td) * e.speed; e.vy = (tdy / td) * e.speed;
+            const tdx = cx - e.x;
+            const tdy = cy - e.y;
+            const { nx, ny, d: td } = safeNorm(tdx, tdy);
+            e.vx = (td < EPS ? 1 : nx) * e.speed;
+            e.vy = (td < EPS ? 0 : ny) * e.speed;
             // Эффект появления: частицы + кольцо
             spawnParticles(s, e.x, e.y, e.color, 12);
             e.teleportRingAnim = 30;
@@ -184,36 +227,57 @@ export function tickEnemies(
 
             // Если телепортаций больше нет — переключаемся на chase
             if ((e.teleportsLeft ?? 0) <= 0) {
-              (e as Enemy).pattern = 'chase';
+              (e as Enemy).pattern = "chase";
               e.teleportAlpha = 1;
             }
           }
         }
         break;
       }
-      case 'bounce':
+      case "bounce":
         if (!e.bouncerEntered) {
           e.x += e.vx;
           e.y += e.vy;
-          if (e.x > e.radius && e.x < W - e.radius && e.y > e.radius && e.y < H - e.radius) {
+          if (
+            e.x > e.radius &&
+            e.x < W - e.radius &&
+            e.y > e.radius &&
+            e.y < H - e.radius
+          ) {
             e.bouncerEntered = true;
           }
         } else {
           e.x += e.vx;
           e.y += e.vy;
-          if (e.x - e.radius < 0) { e.x = e.radius; e.vx = Math.abs(e.vx); spawnParticles(s, e.x, e.y, e.color, 4); }
-          if (e.x + e.radius > W) { e.x = W - e.radius; e.vx = -Math.abs(e.vx); spawnParticles(s, e.x, e.y, e.color, 4); }
-          if (e.y - e.radius < 0) { e.y = e.radius; e.vy = Math.abs(e.vy); spawnParticles(s, e.x, e.y, e.color, 4); }
-          if (e.y + e.radius > H) { e.y = H - e.radius; e.vy = -Math.abs(e.vy); spawnParticles(s, e.x, e.y, e.color, 4); }
+          if (e.x - e.radius < 0) {
+            e.x = e.radius;
+            e.vx = Math.abs(e.vx);
+            spawnParticles(s, e.x, e.y, e.color, 4);
+          }
+          if (e.x + e.radius > W) {
+            e.x = W - e.radius;
+            e.vx = -Math.abs(e.vx);
+            spawnParticles(s, e.x, e.y, e.color, 4);
+          }
+          if (e.y - e.radius < 0) {
+            e.y = e.radius;
+            e.vy = Math.abs(e.vy);
+            spawnParticles(s, e.x, e.y, e.color, 4);
+          }
+          if (e.y + e.radius > H) {
+            e.y = H - e.radius;
+            e.vy = -Math.abs(e.vy);
+            spawnParticles(s, e.x, e.y, e.color, 4);
+          }
         }
         break;
-      case 'spiral': {
+      case "spiral": {
         const dx = cx - e.x;
         const dy = cy - e.y;
-        const d = Math.sqrt(dx * dx + dy * dy);
         e.angle += 0.04;
-        e.vx = Math.cos(e.angle) * e.speed + (dx / d) * 0.5;
-        e.vy = Math.sin(e.angle) * e.speed + (dy / d) * 0.5;
+        const { nx, ny, d } = safeNorm(dx, dy);
+        e.vx = Math.cos(e.angle) * e.speed + (d < EPS ? 0 : nx * 0.5);
+        e.vy = Math.sin(e.angle) * e.speed + (d < EPS ? 0 : ny * 0.5);
         e.x += e.vx;
         e.y += e.vy;
         break;
@@ -237,8 +301,12 @@ export function tickEnemies(
     const dy = e.y - cy;
     const dist = Math.sqrt(dx * dx + dy * dy);
     if (dist < e.radius + 20) {
-      s.hp = Math.max(0, s.hp - e.damage * diff.playerDamageMult * 0.016);
-      spawnParticles(s, cx, cy, '#ff0000', 3);
+      const dmg = Math.max(
+        1,
+        Math.round((e.damage * diff.playerDamageMult) / 10),
+      );
+      s.hp = Math.max(0, s.hp - dmg);
+      spawnParticles(s, cx, cy, "#ff0000", 3);
       deadEnemies.push(i);
       emitState();
       if (s.hp <= 0) {
@@ -248,9 +316,14 @@ export function tickEnemies(
     }
 
     // Out of bounds
-    if (e.pattern !== 'bounce') {
+    if (e.pattern !== "bounce") {
       const margin = 200;
-      if (e.x < -margin || e.x > W + margin || e.y < -margin || e.y > H + margin) {
+      if (
+        e.x < -margin ||
+        e.x > W + margin ||
+        e.y < -margin ||
+        e.y > H + margin
+      ) {
         deadEnemies.push(i);
       }
     }
@@ -266,47 +339,64 @@ export function tickProjectiles(
   deadEnemies: number[],
   emitState: () => void,
 ) {
-  s.projectiles.forEach((p, pi) => {
-    s.enemies.forEach((e, ei) => {
+  // Iterate backwards to safely splice projectiles on hit.
+  for (let pi = s.projectiles.length - 1; pi >= 0; pi--) {
+    const p = s.projectiles[pi]!;
+    let projectileRemoved = false;
+
+    for (let ei = 0; ei < s.enemies.length; ei++) {
+      const e = s.enemies[ei]!;
       const dx = p.x - e.x;
       const dy = p.y - e.y;
       const dist = Math.sqrt(dx * dx + dy * dy);
-      if (dist < p.radius + e.radius) {
-        e.hp--;
-        e.flashTimer = 8;
-        spawnParticles(s, e.x, e.y, e.color, 5);
-        if (e.hp <= 0) {
-          s.score += e.points * s.wave;
-          spawnParticles(s, e.x, e.y, e.color, 15);
+      if (dist >= p.radius + e.radius) continue;
 
-          if (e.id === 'splitter' && !e.splitDone) {
-            e.splitDone = true;
-            const scout = ENEMY_TYPES.find(t => t.id === 'scout')!;
-            for (let k = 0; k < 2; k++) {
-              const sp = createEnemy(scout, W, H, {
-                x: e.x + (Math.random() - 0.5) * 40,
-                y: e.y + (Math.random() - 0.5) * 40,
-              });
-              s.enemies.push(sp);
-            }
+      e.hp--;
+      e.flashTimer = 8;
+      spawnParticles(s, e.x, e.y, e.color, 5);
+
+      if (e.hp <= 0) {
+        s.score += e.points * s.wave;
+        spawnParticles(s, e.x, e.y, e.color, 15);
+
+        if (e.id === "splitter" && !e.splitDone) {
+          e.splitDone = true;
+          const scout = ENEMY_TYPES.find((t) => t.id === "scout")!;
+          for (let k = 0; k < 2; k++) {
+            const sp = createEnemy(scout, W, H, {
+              x: e.x + (Math.random() - 0.5) * 40,
+              y: e.y + (Math.random() - 0.5) * 40,
+              pattern: "chase",
+            });
+            s.enemies.push(sp);
           }
+        }
 
-          if (!deadEnemies.includes(ei)) deadEnemies.push(ei);
-          emitState();
-        }
-        if (!p.piercing) {
-          s.projectiles.splice(pi, 1);
-        }
+        if (!deadEnemies.includes(ei)) deadEnemies.push(ei);
+        emitState();
       }
-    });
-  });
+
+      if (!p.piercing) {
+        s.projectiles.splice(pi, 1);
+        projectileRemoved = true;
+        break;
+      }
+    }
+
+    if (projectileRemoved) continue;
+  }
 }
 
-export function tickCleanup(s: InternalGameState, W: number, H: number, deadEnemies: number[]) {
+export function tickCleanup(
+  s: InternalGameState,
+  W: number,
+  H: number,
+  deadEnemies: number[],
+) {
   const uniqueDead = [...new Set(deadEnemies)].sort((a, b) => b - a);
-  uniqueDead.forEach(i => s.enemies.splice(i, 1));
+  uniqueDead.forEach((i) => s.enemies.splice(i, 1));
 
-  s.projectiles = s.projectiles.filter(p => {
+  s.projectiles = s.projectiles.filter((p) => {
     p.trail.push({ x: p.x, y: p.y });
     if (p.trail.length > 10) p.trail.shift();
     p.x += p.vx;
@@ -314,7 +404,7 @@ export function tickCleanup(s: InternalGameState, W: number, H: number, deadEnem
     return p.x > -50 && p.x < W + 50 && p.y > -50 && p.y < H + 50;
   });
 
-  s.particles = s.particles.filter(p => {
+  s.particles = s.particles.filter((p) => {
     p.x += p.vx;
     p.y += p.vy;
     p.vx *= 0.95;
@@ -339,7 +429,8 @@ export function shootProjectile(
   if (dist === 0) return;
   const speed = 14;
   s.projectiles.push({
-    x: cx, y: cy,
+    x: cx,
+    y: cy,
     vx: (dx / dist) * speed,
     vy: (dy / dist) * speed,
     radius: 4,
@@ -350,7 +441,7 @@ export function shootProjectile(
   s.bowPulse = 15;
   if (s.arrows <= 0) {
     s.reloading = true;
-    s.reloadTimer = 180;
+    s.reloadTimer = RELOAD_FRAMES;
     s.reloadProgress = 0;
   }
   emitState();

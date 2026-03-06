@@ -204,7 +204,33 @@ export function createEnemy(
       break;
   }
   const speed = type.speed * (0.85 + Math.random() * 0.3);
-  const angle = Math.atan2(canvasH / 2 - y, canvasW / 2 - x);
+  let angle = Math.atan2(canvasH / 2 - y, canvasW / 2 - x);
+
+  // Bouncer: first fly into a wall for an early ricochet (not straight to the bow).
+  if (type.pattern === "bounce") {
+    const inset = Math.max(10, type.radius);
+    let tx = canvasW / 2;
+    let ty = canvasH / 2;
+    switch (side) {
+      case 0: // spawned above -> aim to bottom wall
+        tx = inset + Math.random() * (canvasW - inset * 2);
+        ty = canvasH - inset;
+        break;
+      case 2: // spawned below -> aim to top wall
+        tx = inset + Math.random() * (canvasW - inset * 2);
+        ty = inset;
+        break;
+      case 1: // spawned right -> aim to left wall
+        tx = inset;
+        ty = inset + Math.random() * (canvasH - inset * 2);
+        break;
+      case 3: // spawned left -> aim to right wall
+        tx = canvasW - inset;
+        ty = inset + Math.random() * (canvasH - inset * 2);
+        break;
+    }
+    angle = Math.atan2(ty - y, tx - x);
+  }
   return {
     ...type,
     hp: type.maxHp,
