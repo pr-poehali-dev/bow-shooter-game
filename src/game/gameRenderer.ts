@@ -1,21 +1,34 @@
-import { Enemy, Particle, Projectile, drawShape } from './enemies';
-import { InternalGameState } from './gameLogic';
+import { Enemy, Particle, Projectile, drawShape } from "./enemies";
+import { InternalGameState } from "./gameLogic";
 
-export function renderBackground(ctx: CanvasRenderingContext2D, W: number, H: number, frame: number, cx: number, cy: number) {
+export function renderBackground(
+  ctx: CanvasRenderingContext2D,
+  W: number,
+  H: number,
+  frame: number,
+  cx: number,
+  cy: number,
+) {
   ctx.clearRect(0, 0, W, H);
 
-  ctx.fillStyle = '#070a0f';
+  ctx.fillStyle = "#070a0f";
   ctx.fillRect(0, 0, W, H);
 
   // Grid
-  ctx.strokeStyle = 'rgba(0,255,255,0.04)';
+  ctx.strokeStyle = "rgba(0,255,255,0.04)";
   ctx.lineWidth = 1;
   const gridSize = 50;
   for (let gx = 0; gx < W; gx += gridSize) {
-    ctx.beginPath(); ctx.moveTo(gx, 0); ctx.lineTo(gx, H); ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(gx, 0);
+    ctx.lineTo(gx, H);
+    ctx.stroke();
   }
   for (let gy = 0; gy < H; gy += gridSize) {
-    ctx.beginPath(); ctx.moveTo(0, gy); ctx.lineTo(W, gy); ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(0, gy);
+    ctx.lineTo(W, gy);
+    ctx.stroke();
   }
 
   // Center rings
@@ -28,12 +41,19 @@ export function renderBackground(ctx: CanvasRenderingContext2D, W: number, H: nu
   }
 }
 
-export function renderParticles(ctx: CanvasRenderingContext2D, particles: Particle[]) {
-  particles.forEach(p => {
+export function renderParticles(
+  ctx: CanvasRenderingContext2D,
+  particles: Particle[],
+) {
+  particles.forEach((p) => {
     const alpha = p.life / p.maxLife;
     ctx.beginPath();
     ctx.arc(p.x, p.y, p.radius * alpha, 0, Math.PI * 2);
-    ctx.fillStyle = p.color + Math.floor(alpha * 255).toString(16).padStart(2, '0');
+    ctx.fillStyle =
+      p.color +
+      Math.floor(alpha * 255)
+        .toString(16)
+        .padStart(2, "0");
     ctx.shadowBlur = 10;
     ctx.shadowColor = p.color;
     ctx.fill();
@@ -41,8 +61,11 @@ export function renderParticles(ctx: CanvasRenderingContext2D, particles: Partic
   });
 }
 
-export function renderProjectiles(ctx: CanvasRenderingContext2D, projectiles: Projectile[]) {
-  projectiles.forEach(p => {
+export function renderProjectiles(
+  ctx: CanvasRenderingContext2D,
+  projectiles: Projectile[],
+) {
+  projectiles.forEach((p) => {
     p.trail.forEach((t, ti) => {
       const alpha = (ti / p.trail.length) * 0.6;
       const r = p.radius * (ti / p.trail.length) * 0.8;
@@ -53,17 +76,17 @@ export function renderProjectiles(ctx: CanvasRenderingContext2D, projectiles: Pr
     });
     ctx.beginPath();
     ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
-    ctx.fillStyle = '#00ffff';
+    ctx.fillStyle = "#00ffff";
     ctx.shadowBlur = 15;
-    ctx.shadowColor = '#00ffff';
+    ctx.shadowColor = "#00ffff";
     ctx.fill();
     ctx.shadowBlur = 0;
   });
 }
 
 export function renderEnemies(ctx: CanvasRenderingContext2D, enemies: Enemy[]) {
-  enemies.forEach(e => {
-    const isGhost = e.id === 'ghost';
+  enemies.forEach((e) => {
+    const isGhost = e.id === "ghost";
     const alpha = isGhost ? (e.teleportAlpha ?? 1) : 1;
     const ringAnim = e.teleportRingAnim ?? 0;
 
@@ -85,10 +108,10 @@ export function renderEnemies(ctx: CanvasRenderingContext2D, enemies: Enemy[]) {
       // Второе кольцо чуть меньше
       ctx.beginPath();
       ctx.arc(e.x, e.y, ringRadius * 0.65, 0, Math.PI * 2);
-      ctx.strokeStyle = '#ffffff';
+      ctx.strokeStyle = "#ffffff";
       ctx.lineWidth = 1.5 * ringAlpha;
       ctx.shadowBlur = 15;
-      ctx.shadowColor = '#ffffff';
+      ctx.shadowColor = "#ffffff";
       ctx.stroke();
       ctx.shadowBlur = 0;
     }
@@ -98,7 +121,7 @@ export function renderEnemies(ctx: CanvasRenderingContext2D, enemies: Enemy[]) {
     // Pulse glow ring
     ctx.beginPath();
     ctx.arc(e.x, e.y, e.pulseRadius + 4, 0, Math.PI * 2);
-    ctx.strokeStyle = e.color + '44';
+    ctx.strokeStyle = e.color + "44";
     ctx.lineWidth = 1.5;
     ctx.shadowBlur = 15;
     ctx.shadowColor = e.color;
@@ -135,7 +158,17 @@ export function renderEnemies(ctx: CanvasRenderingContext2D, enemies: Enemy[]) {
       ctx.globalAlpha = alpha;
     }
 
-    drawShape(ctx, e.shape, e.x, e.y, e.radius, e.color, e.glowColor, e.angle, e.flashTimer);
+    drawShape(
+      ctx,
+      e.shape,
+      e.x,
+      e.y,
+      e.radius,
+      e.color,
+      e.glowColor,
+      e.angle,
+      e.flashTimer,
+    );
 
     // HP bar
     if (e.maxHp > 1) {
@@ -143,7 +176,7 @@ export function renderEnemies(ctx: CanvasRenderingContext2D, enemies: Enemy[]) {
       const bh = 4;
       const bx = e.x - bw / 2;
       const by = e.y - e.radius - 10;
-      ctx.fillStyle = 'rgba(0,0,0,0.6)';
+      ctx.fillStyle = "rgba(0,0,0,0.6)";
       ctx.fillRect(bx, by, bw, bh);
       ctx.fillStyle = e.color;
       ctx.shadowBlur = 5;
@@ -166,56 +199,139 @@ export function renderBow(
 ) {
   const bowAngle = Math.atan2(my - cy, mx - cx);
   const pulse = s.bowPulse > 0 ? 1 + s.bowPulse * 0.03 : 1;
+  const release = Math.max(0, Math.min(1, s.shootCooldown / 12)); // 1 right after shot -> 0 idle
 
   ctx.save();
   ctx.translate(cx, cy);
   ctx.rotate(bowAngle);
 
-  // Bow outer glow ring
+  const R = 18 * pulse;
+  const limbOuter = 22 * pulse;
+
+  // Soft 3D drop shadow (depth)
+  ctx.save();
+  ctx.translate(3, 3);
+  ctx.globalAlpha = 0.35;
   ctx.beginPath();
-  ctx.arc(0, 0, 22 * pulse, 0, Math.PI * 2);
-  ctx.strokeStyle = 'rgba(0,255,255,0.2)';
-  ctx.lineWidth = 8;
-  ctx.shadowBlur = 20;
-  ctx.shadowColor = '#00ffff';
+  ctx.arc(0, 0, limbOuter, -Math.PI * 0.72, Math.PI * 0.72);
+  ctx.strokeStyle = "rgba(0,0,0,0.9)";
+  ctx.lineWidth = 7;
+  ctx.lineCap = "round";
+  ctx.shadowBlur = 0;
+  ctx.stroke();
+  ctx.restore();
+
+  // Outer glow aura
+  ctx.beginPath();
+  ctx.arc(0, 0, limbOuter, 0, Math.PI * 2);
+  ctx.strokeStyle = "rgba(0,255,255,0.18)";
+  ctx.lineWidth = 10;
+  ctx.shadowBlur = 28;
+  ctx.shadowColor = "#00ffff";
   ctx.stroke();
 
-  // Bow body
+  // Bow limbs: "laminated" look using gradient strokes
+  const limbGrad = ctx.createLinearGradient(0, -limbOuter, 0, limbOuter);
+  limbGrad.addColorStop(0, "rgba(255,255,255,0.85)");
+  limbGrad.addColorStop(0.45, "rgba(0,255,255,0.95)");
+  limbGrad.addColorStop(1, "rgba(0,120,140,0.95)");
+
   ctx.beginPath();
-  ctx.arc(0, 0, 18 * pulse, -Math.PI * 0.6, Math.PI * 0.6);
-  ctx.strokeStyle = '#00ffff';
-  ctx.lineWidth = 3;
-  ctx.shadowBlur = 15;
-  ctx.shadowColor = '#00ffff';
+  ctx.arc(0, 0, R, -Math.PI * 0.62, Math.PI * 0.62);
+  ctx.strokeStyle = limbGrad;
+  ctx.lineWidth = 5;
+  ctx.lineCap = "round";
+  ctx.shadowBlur = 18;
+  ctx.shadowColor = "#00ffff";
   ctx.stroke();
 
-  // Bow string
+  // Inner rim (adds depth)
+  ctx.shadowBlur = 0;
   ctx.beginPath();
-  ctx.moveTo(Math.cos(-Math.PI * 0.6) * 18 * pulse, Math.sin(-Math.PI * 0.6) * 18 * pulse);
-  ctx.lineTo(24 * pulse, 0);
-  ctx.lineTo(Math.cos(Math.PI * 0.6) * 18 * pulse, Math.sin(Math.PI * 0.6) * 18 * pulse);
-  ctx.strokeStyle = 'rgba(0,255,255,0.7)';
+  ctx.arc(0, 0, R - 2, -Math.PI * 0.62, Math.PI * 0.62);
+  ctx.strokeStyle = "rgba(0,0,0,0.25)";
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  // Grip: small cylinder
+  const gripR = 6.5 * pulse;
+  const gripGrad = ctx.createRadialGradient(
+    -2 * pulse,
+    -2 * pulse,
+    1,
+    0,
+    0,
+    gripR * 1.6,
+  );
+  gripGrad.addColorStop(0, "rgba(255,255,255,0.9)");
+  gripGrad.addColorStop(0.35, "rgba(0,255,255,0.55)");
+  gripGrad.addColorStop(1, "rgba(0,0,0,0.35)");
+  ctx.beginPath();
+  ctx.arc(-2 * pulse, 0, gripR, 0, Math.PI * 2);
+  ctx.fillStyle = gripGrad;
+  ctx.shadowBlur = 14;
+  ctx.shadowColor = "#00ffff";
+  ctx.fill();
+  ctx.shadowBlur = 0;
+  ctx.strokeStyle = "rgba(255,255,255,0.35)";
   ctx.lineWidth = 1.5;
-  ctx.shadowBlur = 8;
+  ctx.stroke();
+
+  // Bow string: curve in/out depending on release (after shot it "snaps" forward)
+  const a0 = -Math.PI * 0.62;
+  const a1 = Math.PI * 0.62;
+  const p0 = { x: Math.cos(a0) * R, y: Math.sin(a0) * R };
+  const p2 = { x: Math.cos(a1) * R, y: Math.sin(a1) * R };
+  const stringX = 24 * pulse + release * 6 * pulse; // snap forward on release
+  const tension = (1 - release) * 6 * pulse; // idle is slightly pulled back (towards arrow)
+  const p1 = { x: stringX - tension, y: 0 };
+
+  ctx.beginPath();
+  ctx.moveTo(p0.x, p0.y);
+  ctx.quadraticCurveTo(p1.x, p1.y, p2.x, p2.y);
+  const stringGrad = ctx.createLinearGradient(p0.x, 0, p1.x, 0);
+  stringGrad.addColorStop(0, "rgba(0,255,255,0.25)");
+  stringGrad.addColorStop(0.55, "rgba(255,255,255,0.95)");
+  stringGrad.addColorStop(1, "rgba(0,255,255,0.45)");
+  ctx.strokeStyle = stringGrad;
+  ctx.lineWidth = 1.7;
+  ctx.lineCap = "round";
+  ctx.shadowBlur = 12;
+  ctx.shadowColor = "#ffffff";
   ctx.stroke();
 
   // Arrow ready
   if (!s.reloading && s.arrows > 0) {
+    // Shaft with slight "metallic" gradient
+    const shaftStart = -10 * pulse;
+    const shaftEnd = 32 * pulse - release * 5 * pulse;
+    const shaftGrad = ctx.createLinearGradient(shaftStart, -3, shaftEnd, 3);
+    shaftGrad.addColorStop(0, "rgba(255,255,255,0.9)");
+    shaftGrad.addColorStop(0.5, "rgba(200,240,255,0.95)");
+    shaftGrad.addColorStop(1, "rgba(140,200,220,0.85)");
     ctx.beginPath();
-    ctx.moveTo(-10, 0);
-    ctx.lineTo(32 * pulse, 0);
-    ctx.strokeStyle = '#ffffff';
-    ctx.lineWidth = 1.5;
+    ctx.moveTo(shaftStart, 0);
+    ctx.lineTo(shaftEnd, 0);
+    ctx.strokeStyle = shaftGrad;
+    ctx.lineWidth = 2;
     ctx.shadowBlur = 10;
-    ctx.shadowColor = '#ffffff';
+    ctx.shadowColor = "#ffffff";
     ctx.stroke();
 
     ctx.beginPath();
-    ctx.moveTo(32 * pulse, 0);
-    ctx.lineTo(27 * pulse, -3);
-    ctx.lineTo(27 * pulse, 3);
+    ctx.moveTo(shaftEnd, 0);
+    ctx.lineTo(shaftEnd - 5 * pulse, -3.2 * pulse);
+    ctx.lineTo(shaftEnd - 5 * pulse, 3.2 * pulse);
     ctx.closePath();
-    ctx.fillStyle = '#ffffff';
+    ctx.fillStyle = "rgba(255,255,255,0.95)";
+    ctx.fill();
+
+    // Nock glow point on string
+    ctx.shadowBlur = 16;
+    ctx.shadowColor = "#00ffff";
+    ctx.beginPath();
+    ctx.arc(p1.x, 0, 2.4 * pulse, 0, Math.PI * 2);
+    ctx.fillStyle = "rgba(0,255,255,0.65)";
     ctx.fill();
   }
 
@@ -233,7 +349,7 @@ export function renderAim(
   ctx.beginPath();
   ctx.moveTo(cx, cy);
   ctx.lineTo(mx, my);
-  ctx.strokeStyle = 'rgba(0,255,255,0.12)';
+  ctx.strokeStyle = "rgba(0,255,255,0.12)";
   ctx.lineWidth = 1;
   ctx.setLineDash([6, 8]);
   ctx.stroke();
@@ -241,13 +357,15 @@ export function renderAim(
 
   // Crosshair
   const chSize = 10;
-  ctx.strokeStyle = 'rgba(0,255,255,0.8)';
+  ctx.strokeStyle = "rgba(0,255,255,0.8)";
   ctx.lineWidth = 1.5;
   ctx.shadowBlur = 8;
-  ctx.shadowColor = '#00ffff';
+  ctx.shadowColor = "#00ffff";
   ctx.beginPath();
-  ctx.moveTo(mx - chSize, my); ctx.lineTo(mx + chSize, my);
-  ctx.moveTo(mx, my - chSize); ctx.lineTo(mx, my + chSize);
+  ctx.moveTo(mx - chSize, my);
+  ctx.lineTo(mx + chSize, my);
+  ctx.moveTo(mx, my - chSize);
+  ctx.lineTo(mx, my + chSize);
   ctx.stroke();
   ctx.beginPath();
   ctx.arc(mx, my, 5, 0, Math.PI * 2);
@@ -262,16 +380,22 @@ export function renderReload(
   reloadProgress: number,
 ) {
   ctx.beginPath();
-  ctx.arc(cx, cy, 35, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * reloadProgress);
-  ctx.strokeStyle = '#00ffff';
+  ctx.arc(
+    cx,
+    cy,
+    35,
+    -Math.PI / 2,
+    -Math.PI / 2 + Math.PI * 2 * reloadProgress,
+  );
+  ctx.strokeStyle = "#00ffff";
   ctx.lineWidth = 3;
   ctx.shadowBlur = 15;
-  ctx.shadowColor = '#00ffff';
+  ctx.shadowColor = "#00ffff";
   ctx.stroke();
   ctx.shadowBlur = 0;
 
-  ctx.fillStyle = 'rgba(0,255,255,0.9)';
-  ctx.font = 'bold 11px Orbitron, monospace';
-  ctx.textAlign = 'center';
-  ctx.fillText('RELOAD', cx, cy + 55);
+  ctx.fillStyle = "rgba(0,255,255,0.9)";
+  ctx.font = "bold 11px Orbitron, monospace";
+  ctx.textAlign = "center";
+  ctx.fillText("RELOAD", cx, cy + 55);
 }
