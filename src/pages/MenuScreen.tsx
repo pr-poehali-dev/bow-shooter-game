@@ -8,6 +8,98 @@ type Screen =
   | "settings"
   | "help";
 
+const RAINBOW_COLORS = [
+  "#ff0000",
+  "#ff7700",
+  "#ffff00",
+  "#00ff41",
+  "#00ffff",
+  "#0066ff",
+  "#bf00ff",
+];
+
+function StartButtonParticles() {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const particlesRef = useRef<
+    {
+      x: number;
+      y: number;
+      vx: number;
+      vy: number;
+      r: number;
+      color: string;
+      life: number;
+    }[]
+  >([]);
+
+  useEffect(() => {
+    const container = containerRef.current;
+    const canvas = canvasRef.current;
+    if (!container || !canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    let animId: number;
+    const loop = () => {
+      const rect = container.getBoundingClientRect();
+      const w = Math.max(1, Math.round(rect.width));
+      const h = Math.max(1, Math.round(rect.height));
+      if (canvas.width !== w || canvas.height !== h) {
+        canvas.width = w;
+        canvas.height = h;
+      }
+
+      if (Math.random() < 0.5 && particlesRef.current.length < 45) {
+        particlesRef.current.push({
+          x: Math.random() * w,
+          y: h + 4,
+          vx: (Math.random() - 0.5) * 0.6,
+          vy: -(1.8 + Math.random() * 2.2),
+          r: 2 + Math.random() * 3,
+          color:
+            RAINBOW_COLORS[Math.floor(Math.random() * RAINBOW_COLORS.length)],
+          life: 1,
+        });
+      }
+
+      ctx.clearRect(0, 0, w, h);
+      particlesRef.current = particlesRef.current.filter((p) => {
+        p.x += p.vx;
+        p.y += p.vy;
+        p.life -= 0.018;
+        return p.y > -15 && p.life > 0;
+      });
+
+      particlesRef.current.forEach((p) => {
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+        ctx.fillStyle = p.color;
+        ctx.globalAlpha = p.life;
+        ctx.shadowBlur = 14;
+        ctx.shadowColor = p.color;
+        ctx.fill();
+        ctx.shadowBlur = 0;
+        ctx.globalAlpha = 1;
+      });
+
+      animId = requestAnimationFrame(loop);
+    };
+    animId = requestAnimationFrame(loop);
+    return () => cancelAnimationFrame(animId);
+  }, []);
+
+  return (
+    <div
+      ref={containerRef}
+      className="absolute left-0 right-0 top-full h-14 pointer-events-none"
+      aria-hidden
+    >
+      <canvas ref={canvasRef} className="absolute inset-0 w-full h-full" />
+    </div>
+  );
+}
+
 interface MenuScreenProps {
   screen: "menu" | "gameover";
   lastScore: number;
@@ -226,13 +318,16 @@ export default function MenuScreen({
             </div>
           )}
 
-          <button
-            className="neon-btn-rainbow neon-btn-rainbow-fire py-4 px-6 rounded font-bold text-sm animate-scale-in"
-            style={{ animationDelay: "0.05s" }}
-            onClick={() => onNavigate("game")}
-          >
-            {screen === "gameover" ? "↺ ИГРАТЬ СНОВА" : "▶ НАЧАТЬ ИГРУ"}
-          </button>
+          <div className="relative overflow-visible">
+            <button
+              className="neon-btn-rainbow py-4 px-6 rounded font-bold text-sm animate-scale-in w-full"
+              style={{ animationDelay: "0.05s" }}
+              onClick={() => onNavigate("game")}
+            >
+              {screen === "gameover" ? "↺ ИГРАТЬ СНОВА" : "▶ НАЧАТЬ ИГРУ"}
+            </button>
+            <StartButtonParticles />
+          </div>
           <button
             className="neon-btn neon-btn-purple py-3 px-6 rounded font-bold text-sm animate-scale-in"
             style={{ animationDelay: "0.1s" }}
