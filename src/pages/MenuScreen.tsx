@@ -264,24 +264,39 @@ export default function MenuScreen({
         {screen === "menu" && (
           <>
             <div
-              className="font-orbitron font-black tracking-wider neon-cyan animate-flicker"
-              style={{ fontSize: "clamp(2rem, 7vw, 4.5rem)" }}
+              className="font-orbitron font-black tracking-wider neon-cyan animate-flicker title-line-float opacity-0"
+              style={{
+                fontSize: "clamp(2rem, 7vw, 4.5rem)",
+                animationDelay: "0.1s, 0.7s",
+                animationFillMode: "forwards, both",
+              }}
             >
               NEON
             </div>
             <div
-              className="font-orbitron font-black tracking-[0.15em] neon-purple"
-              style={{ fontSize: "clamp(2rem, 6.5vw, 4.5rem)" }}
+              className="font-orbitron font-black tracking-[0.15em] title-space title-line-float opacity-0"
+              style={{
+                fontSize: "clamp(2rem, 6.5vw, 4.5rem)",
+                animationDelay: "0.25s, 0.85s",
+                animationFillMode: "forwards, both",
+              }}
             >
               SPACE
             </div>
             <div
-              className="font-orbitron font-black tracking-[0.3em] neon-cyan"
-              style={{ fontSize: "clamp(2.5rem, 9vw, 6rem)" }}
+              className="font-orbitron font-black tracking-[0.3em] neon-cyan title-line-float opacity-0"
+              style={{
+                fontSize: "clamp(2.5rem, 9vw, 6rem)",
+                animationDelay: "0.4s, 1s",
+                animationFillMode: "forwards, both",
+              }}
             >
               ARCHER
             </div>
-            <div className="font-rajdhani text-sm tracking-[0.4em] text-white/40 mb-10 uppercase">
+            <div
+              className="font-rajdhani text-sm tracking-[0.4em] text-white/40 mb-10 uppercase title-line opacity-0"
+              style={{ animationDelay: "0.55s", animationFillMode: "forwards" }}
+            >
               Космическая аркада
             </div>
           </>

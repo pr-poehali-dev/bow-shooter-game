@@ -280,6 +280,81 @@
   animation: flicker 4s infinite;
 }
 
+/* Title: SPACE — cycling purple shades */
+@keyframes purple-shift {
+  0%,
+  100% {
+    color: #a78bfa;
+    text-shadow:
+      0 0 12px #a78bfa,
+      0 0 24px #a78bfa,
+      0 0 36px #7c3aed;
+  }
+  20% {
+    color: #c084fc;
+    text-shadow:
+      0 0 12px #c084fc,
+      0 0 24px #c084fc,
+      0 0 36px #a855f7;
+  }
+  40% {
+    color: #bf00ff;
+    text-shadow:
+      0 0 14px #bf00ff,
+      0 0 28px #bf00ff,
+      0 0 42px #9333ea;
+  }
+  60% {
+    color: #d946ef;
+    text-shadow:
+      0 0 12px #d946ef,
+      0 0 24px #d946ef,
+      0 0 36px #c026d3;
+  }
+  80% {
+    color: #e879f9;
+    text-shadow:
+      0 0 12px #e879f9,
+      0 0 24px #e879f9,
+      0 0 36px #d946ef;
+  }
+}
+
+@keyframes title-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
+}
+
+@keyframes title-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.title-space {
+  animation: purple-shift 3.5s ease-in-out infinite;
+}
+
+.title-line {
+  animation: title-reveal 0.6s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.title-line-float {
+  animation:
+    title-reveal 0.6s cubic-bezier(0.22, 1, 0.36, 1) forwards,
+    title-float 4s ease-in-out infinite;
+}
+
 canvas {
   display: block;
   cursor: crosshair;
