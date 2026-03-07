@@ -64,28 +64,48 @@ export function renderParticles(
 export function renderProjectiles(
   ctx: CanvasRenderingContext2D,
   projectiles: Projectile[],
+  frame: number,
 ) {
-  projectiles.forEach((p) => {
+  projectiles.forEach((p, pi) => {
+    const trailPulse = 0.85 + 0.2 * Math.sin(frame * 0.25 + pi);
     p.trail.forEach((t, ti) => {
-      const alpha = (ti / p.trail.length) * 0.6;
-      const r = p.radius * (ti / p.trail.length) * 0.8;
+      const tNorm = ti / Math.max(1, p.trail.length);
+      const alpha =
+        tNorm * 0.7 * (0.6 + 0.2 * Math.sin(frame * 0.2 + ti * 0.5));
+      const r = p.radius * tNorm * 0.9 * trailPulse;
       ctx.beginPath();
       ctx.arc(t.x, t.y, r, 0, Math.PI * 2);
       ctx.fillStyle = `rgba(0,255,255,${alpha})`;
       ctx.fill();
     });
+    const corePulse = 1 + 0.12 * Math.sin(frame * 0.3 + pi);
     ctx.beginPath();
-    ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
-    ctx.fillStyle = "#00ffff";
-    ctx.shadowBlur = 15;
+    ctx.arc(p.x, p.y, p.radius * corePulse, 0, Math.PI * 2);
+    const grad = ctx.createRadialGradient(
+      p.x - 2,
+      p.y - 2,
+      0,
+      p.x,
+      p.y,
+      p.radius * corePulse * 1.5,
+    );
+    grad.addColorStop(0, "rgba(255,255,255,0.95)");
+    grad.addColorStop(0.4, "rgba(0,255,255,0.9)");
+    grad.addColorStop(1, "rgba(0,200,255,0.4)");
+    ctx.fillStyle = grad;
+    ctx.shadowBlur = 18 + 4 * Math.sin(frame * 0.2 + pi);
     ctx.shadowColor = "#00ffff";
     ctx.fill();
     ctx.shadowBlur = 0;
   });
 }
 
-export function renderEnemies(ctx: CanvasRenderingContext2D, enemies: Enemy[]) {
-  enemies.forEach((e) => {
+export function renderEnemies(
+  ctx: CanvasRenderingContext2D,
+  enemies: Enemy[],
+  frame: number,
+) {
+  enemies.forEach((e, i) => {
     const isGhost = e.id === "ghost";
     const alpha = isGhost ? (e.teleportAlpha ?? 1) : 1;
     const ringAnim = e.teleportRingAnim ?? 0;
@@ -118,12 +138,15 @@ export function renderEnemies(ctx: CanvasRenderingContext2D, enemies: Enemy[]) {
 
     ctx.globalAlpha = alpha;
 
-    // Pulse glow ring
+    const breath = 1 + 0.06 * Math.sin(frame * 0.06 + i * 1.2);
+    const glowPulse = 12 + 6 * Math.sin(frame * 0.08 + i);
+
+    // Pulse glow ring (animated)
     ctx.beginPath();
-    ctx.arc(e.x, e.y, e.pulseRadius + 4, 0, Math.PI * 2);
-    ctx.strokeStyle = e.color + "44";
+    ctx.arc(e.x, e.y, (e.pulseRadius + 4) * breath, 0, Math.PI * 2);
+    ctx.strokeStyle = e.color + "55";
     ctx.lineWidth = 1.5;
-    ctx.shadowBlur = 15;
+    ctx.shadowBlur = glowPulse;
     ctx.shadowColor = e.color;
     ctx.stroke();
     ctx.shadowBlur = 0;
@@ -158,6 +181,10 @@ export function renderEnemies(ctx: CanvasRenderingContext2D, enemies: Enemy[]) {
       ctx.globalAlpha = alpha;
     }
 
+    ctx.save();
+    ctx.translate(e.x, e.y);
+    ctx.scale(breath, breath);
+    ctx.translate(-e.x, -e.y);
     drawShape(
       ctx,
       e.shape,
@@ -168,7 +195,10 @@ export function renderEnemies(ctx: CanvasRenderingContext2D, enemies: Enemy[]) {
       e.glowColor,
       e.angle,
       e.flashTimer,
+      frame,
+      i,
     );
+    ctx.restore();
 
     // HP bar
     if (e.maxHp > 1) {
@@ -196,10 +226,12 @@ export function renderBow(
   mx: number,
   my: number,
   s: InternalGameState,
+  frame: number = 0,
 ) {
   const bowAngle = Math.atan2(my - cy, mx - cx);
   const pulse = s.bowPulse > 0 ? 1 + s.bowPulse * 0.03 : 1;
   const release = Math.max(0, Math.min(1, s.shootCooldown / 12)); // 1 right after shot -> 0 idle
+  const idleGlow = 0.18 + 0.04 * Math.sin(frame * 0.05);
 
   ctx.save();
   ctx.translate(cx, cy);
@@ -221,12 +253,12 @@ export function renderBow(
   ctx.stroke();
   ctx.restore();
 
-  // Outer glow aura
+  // Outer glow aura (idle pulse)
   ctx.beginPath();
   ctx.arc(0, 0, limbOuter, 0, Math.PI * 2);
-  ctx.strokeStyle = "rgba(0,255,255,0.18)";
+  ctx.strokeStyle = `rgba(0,255,255,${idleGlow})`;
   ctx.lineWidth = 10;
-  ctx.shadowBlur = 28;
+  ctx.shadowBlur = 26 + 6 * Math.sin(frame * 0.05);
   ctx.shadowColor = "#00ffff";
   ctx.stroke();
 
@@ -236,12 +268,13 @@ export function renderBow(
   limbGrad.addColorStop(0.45, "rgba(0,255,255,0.95)");
   limbGrad.addColorStop(1, "rgba(0,120,140,0.95)");
 
+  const limbGlow = 16 + 4 * Math.sin(frame * 0.06);
   ctx.beginPath();
   ctx.arc(0, 0, R, -Math.PI * 0.62, Math.PI * 0.62);
   ctx.strokeStyle = limbGrad;
   ctx.lineWidth = 5;
   ctx.lineCap = "round";
-  ctx.shadowBlur = 18;
+  ctx.shadowBlur = limbGlow;
   ctx.shadowColor = "#00ffff";
   ctx.stroke();
 
