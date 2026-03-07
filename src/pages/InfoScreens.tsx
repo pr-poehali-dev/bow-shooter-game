@@ -127,7 +127,7 @@ export function HelpScreen({ onBack }: HelpScreenProps) {
             </div>
             <div className="flex justify-between">
               <span className="text-white/50">Стрелы = 0</span>
-              <span className="text-white/80">Авто-перезарядка 2 сек</span>
+              <span className="text-white/80">Авто-перезарядка 3 сек</span>
             </div>
           </div>
         </div>
